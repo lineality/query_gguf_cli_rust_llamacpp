@@ -2,43 +2,13 @@
 // cargo build --profile release-small 
 /*
 
-
 Todo:
-absolute path and home directly not fully implimented
-bug:
-$ roto
-Query via gguf llama.cpp llama-cli
+optional todo: logging not implimented. maybe not possible
 
-Query-GGUF - Select a mode number or type a command:
-Commands:
-  'make' or 'manual' -> Create new mode
-  'config' -> Open config file in editor
-
-Available Modes:
-Resolved model path: /home/oopsy/old_jan/models/mistral-small-latest/mistralai_Mistral-Small-24B-Base-2501-IQ4_XS.gguf
-Resolved prompt path: /home/oopsy/query_gguf/prompts/blankprompt.txt
-Resolved model path: /home/oopsy/old_jan/models/llama3.2-1b-instruct/Llama-3.2-1B-Instruct-Q6_K_L.gguf
-Resolved prompt path: /home/oopsy/query_gguf/prompts/blankprompt.txt
-1. MistralSmall4 - Mistall small q4
-2. t2 - tt22
-
-Enter selection: make
-
-=== Manual Mode Setup ===
-Error: Failed to read config: No such file or directory (os error 2)
-Error: "Failed to read config: No such file or directory (os error 2)"
-
-
-
-
-optional todo: logging not implimented.
-
-# Overall
-1. 'install' for cli use
+# Overall steps for use:
+1. 'install' for cli use (see readme: install llama.cpp and a model, use or build query_gguf, set bash path, put in dir)(pick whatever call names you want)
 2. 'setup' with your models, prompts, in modes of combination
 3.  call quickly for a quick query: bash: query
-
-
 
 
 # Launch with default mode
@@ -122,7 +92,6 @@ use std::io::{self, BufRead, Write};
 use std::process::Command;
 use std::time::{SystemTime, UNIX_EPOCH};
 use std::path::{PathBuf, Path};
-
 
 /// Gets the user's home directory path across different operating systems
 /// 
@@ -259,19 +228,6 @@ fn get_prompts_dir() -> Result<PathBuf, String> {
     Ok(prompts_dir)
 }
 
-/// Gets the absolute path to query_gguf directory in user's home
-/// Returns Result with the path string or an error message
-fn get_query_gguf_dir() -> Result<String, String> {
-    let home = get_home_dir()?;
-    let path = format!("{}/query_gguf", home);
-    
-    // Create directory if it doesn't exist
-    fs::create_dir_all(&path)
-        .map_err(|e| format!("Failed to create query_gguf directory: {}", e))?;
-    
-    Ok(path)
-}
-
 /// Checks if a QueryGGUF configuration file exists at the standard location
 /// 
 /// Verifies existence of config file at:
@@ -287,15 +243,6 @@ fn query_gguf_config_exists() -> bool {
         Err(_) => false
     }
 }
-
-// /// Checks if a QueryGGUF configuration file exists
-// fn query_gguf_config_exists() -> bool {
-//     if let Ok(dir) = get_query_gguf_dir() {
-//         Path::new(&format!("{}/query_gguf_config.toml", dir)).exists()
-//     } else {
-//         false
-//     }
-// }
 
 /// Represents the result of the setup wizard process
 #[derive(Debug)]
@@ -323,7 +270,6 @@ fn setup_llama_cpp_directory() -> Result<String, String> {
         .map_err(|e| format!("Failed to read input: {}", e))?;
     
     let path = input.trim();
-    // let path_buf = PathBuf::from(path); // todo remove?
 
     // Normalize the path
     let normalized_path = normalize_path(path)?;
@@ -489,31 +435,6 @@ fn prompt_for_directory(prompt: &str) -> Result<String, String> {
     Ok(normalized_path)
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn test_path_normalization() {
-        // Create a test directory in the current directory
-        let test_dir = "test_dir";
-        let _ = fs::create_dir_all(test_dir);
-
-        // Test relative path
-        let result = normalize_path("test_dir");
-        assert!(result.is_ok());
-        assert!(result.unwrap().contains("test_dir"));
-
-        // Test absolute path (this test might need adjustment based on your system)
-        let abs_path = format!("{}/{}", std::env::current_dir().unwrap().display(), test_dir);
-        let result = normalize_path(&abs_path);
-        assert!(result.is_ok());
-
-        // Clean up
-        let _ = fs::remove_dir(test_dir);
-    }
-}
-
 /// Prompts user for a yes/no response
 fn prompt_yes_no(prompt: &str) -> Result<bool, String> {
     loop {
@@ -602,45 +523,6 @@ fn save_query_gguf_config(config_content: &str) -> Result<(), String> {
     Ok(())
 }
 
-// /// Saves the configuration to a TOML file
-// fn save_query_gguf_config(config_content: &str) -> io::Result<()> {
-//     let config_path = "query_gguf_config.toml";
-//     fs::write(config_path, config_content)?;
-//     println!("Configuration saved to: {}", config_path);
-//     Ok(())
-// }
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use std::fs;
-
-    #[test]
-    fn test_generate_toml_config() {
-        let test_result = SetupWizardResult {
-            gguf_model_directories: vec!["/path/to/models".to_string()],
-            prompt_file_directories: vec!["/path/to/prompts".to_string()],
-            log_directory_path: "/path/to/logs".to_string(),
-            logging_enabled: true,
-        };
-
-        let config = generate_toml_config(&test_result);
-        
-        assert!(config.contains("logging_enabled = true"));
-        assert!(config.contains("/path/to/models"));
-        assert!(config.contains("/path/to/prompts"));
-        assert!(config.contains("/path/to/logs"));
-    }
-
-    // Add more tests as needed
-}
-
-// /// Checks if a QueryGGUF configuration file already exists
-// /// Returns true if the file exists and is readable
-// fn query_gguf_config_exists() -> bool {
-//     Path::new("query_gguf_config.toml").exists()
-// }
-
 /// Validates that the essential directories in the configuration are accessible
 /// Returns Result with () for success or String for error message
 fn validate_query_gguf_directories(wizard_result: &SetupWizardResult) -> Result<(), String> {
@@ -692,18 +574,6 @@ fn validate_query_gguf_directories(wizard_result: &SetupWizardResult) -> Result<
     Ok(())
 }
 
-// /// Creates a backup of an existing configuration file
-// fn backup_existing_config() -> io::Result<()> {
-//     let config_path = "query_gguf_config.toml";
-//     if Path::new(config_path).exists() {
-//         let timestamp = generate_timestamp_string();
-//         let backup_path = format!("query_gguf_config_{}.toml.bak", timestamp);
-//         fs::copy(config_path, &backup_path)?;
-//         println!("Created backup of existing config: {}", backup_path);
-//     }
-//     Ok(())
-// }
-
 /// Creates a backup of an existing configuration file
 /// 
 /// Copies the config file to a timestamped backup in the same directory:
@@ -742,35 +612,6 @@ fn backup_existing_config() -> Result<(), String> {
     Ok(())
 }
 
-// /// Main function to handle the setup process
-// fn handle_query_gguf_setup() -> Result<(), String> {
-//     if query_gguf_config_exists() {
-//         println!("\nExisting QueryGGUF configuration found.");
-//         match prompt_yes_no("Do you want to create a new configuration?") {
-//             Ok(true) => {
-//                 backup_existing_config()
-//                     .map_err(|e| format!("Failed to backup existing config: {}", e))?;
-//             }
-//             Ok(false) => {
-//                 println!("Keeping existing configuration.");
-//                 return Ok(());
-//             }
-//             Err(e) => return Err(format!("Error during prompt: {}", e)),
-//         }
-//     }
-
-//     let wizard_result = run_query_gguf_setup_wizard()?;
-    
-//     // Validate directories before saving
-//     validate_query_gguf_directories(&wizard_result)?;
-
-//     let config_content = generate_toml_config(&wizard_result);
-//     save_query_gguf_config(&config_content)
-//         .map_err(|e| format!("Failed to save configuration: {}", e))?;
-
-//     println!("\nQueryGGUF configuration completed successfully!");
-//     Ok(())
-// }
 /// Main function to handle the setup process
 fn handle_query_gguf_setup() -> Result<(), String> {
     if query_gguf_config_exists() {
@@ -808,20 +649,24 @@ fn handle_query_gguf_setup() -> Result<(), String> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
-    fn test_config_existence_check() {
-        // Remove test config if it exists
-        let _ = fs::remove_file("query_gguf_config.toml");
-        assert!(!query_gguf_config_exists());
+    fn test_generate_toml_config() {
+        let test_result = SetupWizardResult {
+            gguf_model_directories: vec!["/path/to/models".to_string()],
+            prompt_file_directories: vec!["/path/to/prompts".to_string()],
+            log_directory_path: "/path/to/logs".to_string(),
+            logging_enabled: true,
+            llama_cpp_directory: "/path/to/llama-cli".to_string(), // Added this line
+        };
 
-        // Create test config
-        fs::write("query_gguf_config.toml", "test = true").unwrap();
-        assert!(query_gguf_config_exists());
-
-        // Clean up
-        let _ = fs::remove_file("query_gguf_config.toml");
+        let config = generate_toml_config(&test_result);
+        
+        assert!(config.contains("logging_enabled = true"));
+        assert!(config.contains("/path/to/models"));
+        assert!(config.contains("/path/to/prompts"));
+        assert!(config.contains("/path/to/logs"));
+        assert!(config.contains("/path/to/llama-cli")); // Added this check
     }
 
     #[test]
@@ -832,12 +677,16 @@ mod tests {
             prompt_file_directories: vec![],
             log_directory_path: temp_dir.to_str().unwrap().to_string(),
             logging_enabled: true,
+            llama_cpp_directory: temp_dir.join("llama-cli")  // Added this line
+                .to_string_lossy()
+                .to_string(),
         };
 
         assert!(validate_query_gguf_directories(&result).is_ok());
     }
 }
 
+/// old
 /// The function reads a single line from a TOML file that starts with a specified field name
 /// and ends with a value. The function returns an empty string if the field is not found, and
 /// does not panic or unwrap in case of errors. The function uses only standard Rust libraries
@@ -863,7 +712,7 @@ mod tests {
 /// example use:
 ///     let value = read_field_from_toml("test.toml", "fieldname");
 ///
-
+/// new
 /// The function reads a single line from a TOML file that starts with a specified field name.
 /// The file path is obtained using get_config_path() to ensure the correct absolute path.
 /// The function returns an empty string if the field is not found, and
@@ -1002,36 +851,6 @@ fn read_field_from_toml(field_name: &str) -> String {
 }
 
 /// Reads all fields from a TOML file that share a common base name (prefix before underscore)
-/// and returns a vector of their values. Returns an empty vector if no matching fields are found
-/// or if any errors occur.
-///
-/// # Arguments
-/// * `path` - Path to the TOML file
-/// * `base_name` - Base name to search for (e.g., "prompt" will match "prompt_1", "prompt_2", etc.)
-///
-/// # Returns
-/// * `Vec<String>` - Vector containing all values for fields matching the base name
-///
-/// # Example
-/// ```
-/// let values = read_basename_fields_from_toml("config.toml", "prompt");
-/// // For TOML content:
-/// // prompt_1 = "value1"
-/// // prompt_2 = "value2"
-/// // Returns: vec!["value1", "value2"]
-/// ```
-// fn read_basename_fields_from_toml(path: &str, base_name: &str) -> Vec<String> {
-//     let mut values = Vec::new();
-//     let mut numbered_values = Vec::new();  // Store (number, value) pairs
-
-//     // Validate input parameters
-//     if path.is_empty() || base_name.is_empty() {
-//         println!("Error: Empty path or base name provided");
-//         return values;
-//     }
-
-
-/// Reads all fields from a TOML file that share a common base name (prefix before underscore)
 /// and returns a vector of their values.
 /// 
 /// Uses the standard config file location:
@@ -1063,17 +882,17 @@ fn read_basename_fields_from_toml(base_name: &str) -> Vec<String> {
         return values;
     }
 
-    // Open and read the file
-    let file = match File::open(&path) {
-        Ok(file) => file,
-        Err(e) => {
-            println!("Failed to open file at path: {}. Error: {}", path.display(), e);
-            return values;
-        },
-    };
+    // // Open and read the file
+    // let file = match File::open(&path) {
+    //     Ok(file) => file,
+    //     Err(e) => {
+    //         println!("Failed to open file at path: {}. Error: {}", path.display(), e);
+    //         return values;
+    //     },
+    // };
 
-    let reader = io::BufReader::new(file);
-    let base_name_with_underscore = format!("{}_", base_name);
+    // let reader = io::BufReader::new(file);
+    // let base_name_with_underscore = format!("{}_", base_name);
 
     // Open and read the file
     let file = match File::open(&path) {
@@ -1132,41 +951,6 @@ fn read_basename_fields_from_toml(base_name: &str) -> Vec<String> {
 
     values
 }
-
-// #[cfg(test)]
-// mod tests {
-//     use super::*;
-//     use std::fs::write;
-//     use std::fs::remove_file;
-
-//     #[test]
-//     fn test_read_basename_fields() {
-//         // Create a temporary test TOML file
-//         let test_content = r#"
-//             # Test TOML file
-//             prompt_1 = "value1"
-//             prompt_2 = "value2"
-//             other_field = "other"
-//             prompt_3 = "value3"
-//         "#;
-//         let test_file = "test_basename.toml";
-//         write(test_file, test_content).unwrap();
-
-//         // Test reading basename fields
-//         let values = read_basename_fields_from_toml(test_file, "prompt");
-        
-//         // Clean up
-//         let _ = remove_file(test_file);
-
-//         assert_eq!(values, vec!["value1", "value2", "value3"]);
-//     }
-
-//     #[test]
-//     fn test_empty_input() {
-//         let values = read_basename_fields_from_toml("", "prompt");
-//         assert!(values.is_empty());
-//     }
-// }
 
 /// Defines all adjustable parameters for the llama.cpp command execution
 /// Each field corresponds to a specific llama.cpp command line argument
@@ -1299,58 +1083,6 @@ fn create_blank_prompt() -> Result<String, String> {
     Ok(blank_prompt_path.to_string_lossy().to_string())
 }
 
-// /// Creates a blank prompt file in the prompts directory
-// fn create_blank_prompt() -> Result<String, String> {
-//     let prompts_dir = get_prompts_dir()?;
-//     let blank_prompt_path = prompts_dir.join("blankprompt.txt");
-
-//     println!("DEBUG: Creating prompt directory: {}", prompts_dir.display());
-    
-//     // Create prompts directory with all parent directories
-//     fs::create_dir_all(&prompts_dir)
-//         .map_err(|e| format!("Failed to create prompts directory: {}", e))?;
-
-//     println!("DEBUG: Creating blank prompt file: {}", blank_prompt_path.display());
-    
-//     // Create the blank prompt file with minimal content
-//     fs::write(&blank_prompt_path, "# Blank prompt file\n")
-//         .map_err(|e| format!("Failed to create blank prompt file: {}", e))?;
-
-//     // Verify the file was created
-//     if !blank_prompt_path.exists() {
-//         return Err("Failed to verify blank prompt file creation".to_string());
-//     }
-
-//     println!("Successfully created blank prompt file at: {}", blank_prompt_path.display());
-//     Ok(blank_prompt_path.to_string_lossy().to_string())
-// }
-
-// /// Creates a blank prompt file in the prompts directory
-// fn create_blank_prompt() -> Result<String, String> {
-//     let prompts_dir = "prompts";
-//     let blank_prompt_path = format!("{}/blankprompt.txt", prompts_dir);
-
-//     println!("DEBUG: Creating prompt directory: {}", prompts_dir);
-    
-//     // Create prompts directory with all parent directories
-//     fs::create_dir_all(prompts_dir)
-//         .map_err(|e| format!("Failed to create prompts directory: {}", e))?;
-
-//     println!("DEBUG: Creating blank prompt file: {}", blank_prompt_path);
-    
-//     // Create the blank prompt file with minimal content
-//     fs::write(&blank_prompt_path, "# Blank prompt file\n")
-//         .map_err(|e| format!("Failed to create blank prompt file: {}", e))?;
-
-//     // Verify the file was created
-//     if !Path::new(&blank_prompt_path).exists() {
-//         return Err("Failed to verify blank prompt file creation".to_string());
-//     }
-
-//     println!("Successfully created blank prompt file at: {}", blank_prompt_path);
-//     Ok(blank_prompt_path)
-// }
-
 /// Handles prompt directory setup, creating a default if needed
 fn setup_prompt_directory() -> Result<String, String> {
     println!("\nPrompt Directory Setup:");
@@ -1451,7 +1183,7 @@ fn launch_llama(mode: &ChatModeConfig) -> Result<(), String> {
 
     llama_command.push_str(" --no-display-prompt");
 
-    println!("\nPreparing to launch LLaMA in new terminal...");
+    println!("\nPreparing to launch LLaMA.cpp gguf llama-cli in a new terminal...");
     println!("Command: {}", llama_command);
 
     // Launch in new terminal based on OS
@@ -1464,8 +1196,7 @@ fn launch_llama(mode: &ChatModeConfig) -> Result<(), String> {
         // Try different terminal emulators
         let terminals = ["xterm", "gnome-terminal", "konsole", "xfce4-terminal"];
         let mut last_error = String::from("No terminal emulator found");
-        
-        // TODO why does this say press enter to close?
+
         for terminal in terminals.iter() {
             let result = if *terminal == "gnome-terminal" {
                 Command::new(terminal)
@@ -1645,32 +1376,6 @@ fn handle_manual_mode_selection() -> Result<String, String> {
     Ok(format!("manual::{}", selected_model.display_name))
 }
 
-// /// Recursively finds all GGUF models in configured directories and their subdirectories
-// fn find_gguf_models() -> Result<Vec<ModelFile>, String> {
-//     let config_content = fs::read_to_string("query_gguf_config.toml")
-//         .map_err(|e| format!("Failed to read config: {}", e))?;
-
-//     let mut models = Vec::new();
-
-//     // Parse config file line by line to find model directories
-//     for line in config_content.lines() {
-//         if line.starts_with("gguf_model_directory_") {
-//             if let Some(path) = line.split('=').nth(1) {
-//                 let base_path = path.trim().trim_matches('"');
-//                 search_directory_for_gguf(&mut models, Path::new(base_path))?;
-//             }
-//         }
-//     }
-
-//     if models.is_empty() {
-//         println!("\nWarning: No .gguf files found in configured directories or their subdirectories.");
-//     } else {
-//         models.sort_by(|a, b| a.display_name.cmp(&b.display_name));
-//     }
-
-//     Ok(models)
-// }
-
 /// Finds all GGUF model files in the configured model directories
 /// 
 /// Reads the configuration file from the standard location:
@@ -1778,66 +1483,6 @@ fn search_directory_for_gguf(models: &mut Vec<ModelFile>, dir: &Path) -> Result<
     }
 }
 
-// /// Provides interactive prompt file selection from the standard prompts directory
-// /// 
-// /// Lists available prompt files from:
-// /// - Linux/MacOS: ~/query_gguf/prompts/
-// /// - Windows: \Users\username\query_gguf\prompts\
-// /// 
-// /// This function:
-// /// 1. Lists all available prompt files with numbers
-// /// 2. Allows user selection by number
-// /// 3. Returns absolute path to selected prompt
-// /// 
-// /// # Returns
-// /// - Ok(String): Absolute path to selected prompt file
-// /// - Err(String): Error message if:
-// ///   - No prompt files found
-// ///   - Invalid selection
-// ///   - File access errors
-// /// 
-// /// # Path Handling
-// /// - Uses absolute paths for reliability
-// /// - Validates file existence before returning
-// /// - Maintains consistent path format across OS
-// /// 
-// /// # Example Success Path
-// /// ```
-// /// "/home/username/query_gguf/prompts/system_prompt.txt"
-// /// ```
-// /// 
-// /// # Error Cases
-// /// - Empty prompts directory
-// /// - Invalid number entered
-// /// - Number out of range
-// /// - Selected file no longer exists
-// /// Handles prompt file selection
-// fn select_prompt_file() -> Result<String, String> {
-//     let prompts = find_prompt_files()?;
-    
-//     if prompts.is_empty() {
-//         return Err("No prompt files found in configured directories".to_string());
-//     }
-
-//     println!("\nAvailable Prompts:");
-//     for (index, prompt) in prompts.iter().enumerate() {
-//         println!("{}. {}", index + 1, prompt);
-//     }
-
-//     print!("\nSelect prompt number: ");
-//     io::stdout().flush().map_err(|e| e.to_string())?;
-    
-//     let choice = read_user_input()?;
-//     let index = choice.trim().parse::<usize>()
-//         .map_err(|_| "Invalid prompt number".to_string())?
-//         .checked_sub(1)
-//         .ok_or("Invalid prompt number".to_string())?;
-
-//     prompts.get(index)
-//         .ok_or("Invalid prompt selection".to_string())
-//         .map(|s| s.to_string())
-// }
-
 /// Provides interactive prompt file selection from the standard prompts directory
 /// 
 /// Lists available prompt files from:
@@ -1919,13 +1564,6 @@ fn select_prompt_file() -> Result<String, String> {
 
     Ok(absolute_path.to_string_lossy().to_string())
 }
-
-
-// /// Recursively finds all prompt files in configured directories
-// fn find_prompt_files() -> Result<Vec<String>, String> {
-//     let config_content = fs::read_to_string("query_gguf_config.toml")
-//         .map_err(|e| format!("Failed to read config: {}", e))?;
-
     
 /// Finds all prompt files in the configured prompts directory
 /// 
@@ -2043,130 +1681,6 @@ fn search_directory_for_prompts(prompts: &mut Vec<String>, dir: &Path) -> Result
 
     Ok(())
 }
-    
-// /// Recursively finds all prompt files in configured directories
-// /// 
-// /// Reads the prompt directory location from the config file at:
-// /// - Linux/MacOS: ~/query_gguf/query_gguf_config.toml
-// /// - Windows: \Users\username\query_gguf\query_gguf_config.toml
-// /// 
-// /// # Returns
-// /// - Ok(Vec<String>): List of found prompt files
-// /// - Err(String): Error message if config or directories cannot be accessed
-// /// 
-// fn find_prompt_files() -> Result<Vec<String>, String> {
-//     // CHANGE: Get absolute path to config file
-//     let config_path = get_config_path()?;
-//     let config_content = fs::read_to_string(&config_path)
-//         .map_err(|e| format!("Failed to read config: {}", e))?;
-
-//     let mut prompts = Vec::new();
-    
-//     // Parse config for prompt directory
-//     for line in config_content.lines() {
-//         if line.starts_with("prompt_directory") {
-//             if let Some(path) = line.split('=').nth(1) {
-//                 let base_path = path.trim().trim_matches('"');
-//                 println!("Searching for prompts in: {}", base_path); // Debug print
-//                 search_directory_for_prompts(&mut prompts, Path::new(base_path))?;
-//             }
-//         }
-//     }
-
-//     if prompts.is_empty() {
-//         println!("\nWarning: No files found in prompts directory.");
-//         println!("Please add your prompt files to the 'prompts' directory.");
-//     } else {
-//         prompts.sort();
-//     }
-
-//     Ok(prompts)
-// }
-
-// /// Recursively searches a directory and its subdirectories for prompt files
-// fn search_directory_for_prompts(prompts: &mut Vec<String>, dir: &Path) -> Result<(), String> {
-//     if !dir.exists() {
-//         // Create the directory if it doesn't exist
-//         fs::create_dir_all(dir)
-//             .map_err(|e| format!("Failed to create prompts directory: {}", e))?;
-//         println!("Created prompts directory: {}", dir.display());
-//         return Ok(());
-//     }
-
-//     match fs::read_dir(dir) {
-//         Ok(entries) => {
-//             for entry in entries {
-//                 match entry {
-//                     Ok(entry) => {
-//                         let path = entry.path();
-//                         if path.is_dir() {
-//                             // Recursively search subdirectories
-//                             let _ = search_directory_for_prompts(prompts, &path);
-//                         } else {
-//                             // Accept any file in the prompts directory
-//                             println!("Found prompt file: {}", path.display());
-//                             prompts.push(path.to_string_lossy().to_string());
-//                         }
-//                     }
-//                     Err(e) => println!("Warning: Error reading directory entry: {}", e),
-//                 }
-//             }
-//             Ok(())
-//         }
-//         Err(e) => Err(format!("Failed to read directory {}: {}", dir.display(), e))
-//     }
-// }
-
-// fn read_saved_modes() -> Result<Vec<ChatModeConfig>, String> {
-//     // let config_content = fs::read_to_string("query_gguf_config.toml")
-//     //     .map_err(|e| format!("Failed to read config: {}", e))?;
-
-//     let mut modes = Vec::new();
-//     let mode_fields = read_basename_fields_from_toml("mode");
-
-//     for config_str in mode_fields {
-//         let parts: Vec<&str> = config_str.split('|').collect();
-//         if parts.len() >= 2 {
-//             // First part is always model path
-//             let model_path = parts[0].to_string();
-
-//             // Get prompt path (second part) or use blank prompt
-//             let prompt_path = if parts.len() > 1 && !parts[1].contains('=') {
-//                 parts[1].to_string()
-//             } else {
-//                 "prompts/blankprompt.txt".to_string()
-//             };
-            
-//             // Get the last two non-parameter parts for name and description
-//             let mut name = String::new();
-//             let mut description = String::new();
-            
-//             // Find the last two non-parameter parts
-//             let non_param_parts: Vec<&str> = parts.iter()
-//                 .filter(|&&part| !part.contains('='))
-//                 .cloned()
-//                 .collect();
-            
-//             if non_param_parts.len() >= 2 {
-//                 name = non_param_parts[non_param_parts.len() - 2].to_string();
-//                 description = non_param_parts[non_param_parts.len() - 1].to_string();
-//             }
-
-//             let parameters = parse_parameters_from_parts(&parts);
-
-//             let mode_config = ChatModeConfig {
-//                 name,
-//                 description,
-//                 model_path,
-//                 prompt_path,
-//                 parameters,
-//             };
-//             modes.push(mode_config);
-//         }
-//     }
-
-//     Ok(modes)
-// }
 
 /// Reads and parses all saved chat modes from the configuration file
 /// 
@@ -2204,7 +1718,7 @@ fn search_directory_for_prompts(prompts: &mut Vec<String>, dir: &Path) -> Result
 /// - Missing required fields
 /// 
 fn read_saved_modes() -> Result<Vec<ChatModeConfig>, String> {
-    let config_path = get_config_path()?;
+    // let config_path = get_config_path()?;
     let mode_fields = read_basename_fields_from_toml("mode");
     let mut modes = Vec::new();
 
@@ -2595,39 +2109,6 @@ fn display_available_modes() {
         }
     }
 }
-
-// /// Opens the config file in the default text editor
-// fn open_config_in_editor() -> Result<(), String> {
-//     let editor = std::env::var("EDITOR")
-//         .unwrap_or_else(|_| "nano".to_string()); // Default to nano if EDITOR not set
-
-    
-// /// Opens the config file in the default text editor
-// /// 
-// /// Uses $EDITOR environment variable if set, otherwise defaults to nano.
-// /// Opens the config file at:
-// /// - Linux/MacOS: ~/query_gguf/query_gguf_config.toml
-// /// - Windows: \Users\username\query_gguf\query_gguf_config.toml
-// /// 
-// /// # Returns
-// /// - Ok(()): Editor opened and closed successfully
-// /// - Err(String): Error message if editor cannot be opened or config path cannot be found
-// /// 
-// fn open_config_in_editor() -> Result<(), String> {
-//     let editor = std::env::var("EDITOR")
-//         .unwrap_or_else(|_| "nano".to_string()); // Default to nano if EDITOR not set
-
-//     // CHANGE: Get absolute path to config file
-//     let config_path = get_config_path()?;
-//     Command::new(editor)
-//         .arg("query_gguf_config.toml")
-//         .spawn()
-//         .map_err(|e| format!("Failed to open editor: {}", e))?
-//         .wait()
-//         .map_err(|e| format!("Error while editing: {}", e))?;
-
-//     Ok(())
-// }
 
 /// Opens the configuration file in the system's text editor
 /// 

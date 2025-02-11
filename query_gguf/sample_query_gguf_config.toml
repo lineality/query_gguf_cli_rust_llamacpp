@@ -1,0 +1,45 @@
+# QueryGGUF Configuration File
+
+llama_cli_path = "/home/abc/llama.cpp/build/bin/llama-cli"
+
+logging_enabled = false
+gguf_model_directory_1 = "/home/abc/old_jan/models"
+
+prompt_directory = "prompts"
+
+# Configuration Examples:
+# Additional model directories can be added as:
+# gguf_model_directory_2 = "/path/to/more/models"
+# gguf_model_directory_3 = "/another/path/to/models"
+
+# Additional prompt directories can be added as:
+# prompt_directory_2 = "/path/to/more/prompts"
+# prompt_directory_3 = "/another/path/to/prompts"
+
+# example llama.cpp llama-cli path:
+# llama_cli_path = "/home/abc/llama.cpp/build/bin/llama-cli"
+# Saved modes will appear as:
+# mode_1 = "model_path|prompt_path|temp=0.8|top_k=40|description"
+
+
+# Mode 1 - MistralSmall4 - Mistall small q4
+mode_1 = "/home/abc/old_jan/models/mistral-small-latest/mistralai_Mistral-Small-24B-Base-2501-IQ4_XS.gguf|prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|MistralSmall4|Mistall small q4"
+
+# Mode 2 - llama - llama
+mode_2 = "/home/abc/old_jan/models/llama3.2-1b-instruct/Llama-3.2-1B-Instruct-Q6_K_L.gguf|/home/abc/query_gguf/prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|llama|llama"
+default_mode = 3
+
+# Mode 3 - llama - llamas
+mode_3 = "/home/abc/old_jan/models/llama3.2-1b-instruct/Llama-3.2-1B-Instruct-Q6_K_L.gguf|/home/abc/query_gguf/prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|llama|llamas"
+
+# Mode 4 - t2 - tt22
+mode_4 = "/home/abc/old_jan/models/llama3.2-1b-instruct/Llama-3.2-1B-Instruct-Q6_K_L.gguf|prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|t2|tt22"
+
+# Mode 5 - t3 - ttt333
+mode_5 = "/home/abc/old_jan/models/llama3.2-1b-instruct/Llama-3.2-1B-Instruct-Q6_K_L.gguf|prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|t3|ttt333"
+
+# Mode 6 - lc - llc
+mode_6 = "/home/abc/old_jan/models/llamacorn-1.1b/llamacorn-1.1b-chat.Q8_0.gguf|prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|lc|llc"
+
+# Mode 7 - yes - yesss
+mode_7 = "/home/abc/old_jan/models/llamacorn-1.1b/llamacorn-1.1b-chat.Q8_0.gguf|/home/abc/query_gguf/prompts/blankprompt.txt|temp=0.8|top_k=40|top_p=0.9|ctx_size=2000|threads=11|gpu_layers=0|interactive_first=true|yes|yesss"
