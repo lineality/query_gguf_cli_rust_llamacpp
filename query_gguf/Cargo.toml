@@ -1,0 +1,16 @@
+[package]
+name = "query_gguf"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+[profile.release-small]
+inherits = "release"
+lto = true
+codegen-units = 1
+strip = "symbols"
+panic = "abort"
+incremental = false
+opt-level = 's'
+debug = false

@@ -1,0 +1,213 @@
+## Specific Step By Step Approach including Specific Context:
+Focus on one step at a time (within a specific scope): While other prep may be entailed, please focus on one clear testable step at a time. Comments about future and past steps may be important supplements, but focus on one well defined step including any issues or questions about the clear definition and role of this step within the defined scope and goals, including any issues or questions about the clear definition of the scope and goals. 
+
+
+# Best Practice Coding Guidelines:
+(Written with a focus on Rust, but generally relevant.)
+
+It is important to confirm an understanding of an alignment with: process, scope, goals, and current task. In Agile this scope-goal-task alignment should happen at least once a day in a 'standup.'
+
+In terms of clear communication and helpful thoroughness, it is a good idea to explain your code and any decisions you make about it. This can help others understand your code and avoid any potential misunderstandings or errors. E.g. It is helpful to explain why you chose to create the directory structure in a certain way and what the potential consequences of that decision might be.
+
+## Naming 
+- (assuming the goal is concrete productivity, not sport or fantasy):
+
+It is extremely important to follow best practice naming policies, which are also common sense, much of which is summed up by the phrase: "Don't give two things one name, don't give one thing two names."
+
+### Best-Practice for naming includes:
+- No colliding names: no variable or other thing should have a name that collides with any other name. Each named 'thing' in code must have one unique name. Doing a string search on one name-thing must only return results for that name-thing.
+- No vague names.
+- No confusing names.
+- No meaningless names.
+- No quick-easy-sloppy names.
+- No inconsistent names.
+- No temporary terse names.
+- Do not give one thing two different names.
+- Do not give two things one name.
+- A name must be extremely clear about what it refers to in that specific context.
+
+Use Clear and Descriptive Names: Ensure that all variable and struct names are unambiguous and accurately reflect their purpose. A rule of thumb is no name-collisions of name-multiplications. Do not give one thing two (or more) names. Do not give two (or more) things one name.
+
+If you see a violation of naming best practice raise a red flag; do not allow future liabilities to be hidden.
+
+Note: There are cases where a 'thing' may be generalized as in a variable for error-handling that is standardized across functions. This may be seen either as an exception or as not exceptional: if you want one standardized error_status or error_message variable name, do so. 
+
+# Agenda, Process, Goals
+## These are not goals:
+- Doing what is common for the sake of doing what is common is not a goal. 
+- Conciseness for the sake of Conciseness is not a goal.
+- Conciseness is not thorough and clear communication. 
+- Conciseness in general is not a goal.
+- Brevity for the sake of Brevity is not a goal.
+- Brevity is not thorough and clear communication. 
+- Brevity in general is not a goal.
+- Pursuing attractive abstractions and proxies for the sake of pursuing attractive abstractions and proxies is not a goal.
+- Replacing feasible concrete solutions with vacuous, attractive, abstractions and proxies is not a goal.
+
+- A name being short is not a goal. 
+- A name being common, popular, conventional, and jargon is not a goal.
+- A name 'feeling clean' in an undefinable way is absolutely not a goal.
+- The name being very, very, very, very clear and understandable is a goal.
+- Renaming and refactoring (which used to mean ~renaming) are not goals in and of themselves. Unless it is within scope (which it may be): do not change names just for the sake of making additional changes.
+
+## Commenting Code:
+Every comment must be a very specific concrete connection to this project. If something does not apply to this project, do not waste time by inserting it into discussions about this project.
+
+
+## 'Get-Needed, When-Needed'
+Get-Needed info When and Where it is needed:
+NEVER load ANY field of ANY person's information unless you absolutely need it, ever.
+
+
+
+## Commenting and Communicating Are Valuable
+The concept of 'self-commenting code' is antisocial toxic disinformation: Code must be clearly and thoroughly commented and documented including line comments and /// docstrings above the rust function.
+- Do not remove documentation. 
+- Add to documentation and check documentation for accuracy pointing out and raising any potential issues you see.
+- Do not remove comments (unless they are wrong or deprecated). 
+- Add to comments and check them for accuracy pointing out and raising any potential issues you see.
+- Do not remove doc-strings  (unless they are wrong or deprecated). 
+Add to doc-strings and check them for accuracy pointing out and raising any potential issues you see.
+
+
+If you are making a reference to (adding to, modifying, or removing from) one specific location of code:
+1. be clear about exactly what section you are talking about, such as adding a // HERE!! HERE!! comment in a block of code where at that spot a changed line is found. You cannot be too clear. Nothing is obvious to others. Not only must alignment on goals and scope not be assumed, mis-alignment must be assumed to be ever-expanding by default. Use line-numbers where possible when referring to lines of code.
+
+2. Do not assume anything is automatically sufficiently self-evident: Do not present a vague pseudocode spray of a huge area of code and assume the one line you meant to add or change will be self-evident.
+
+Review the documentation to make sure you are getting details correct.
+
+Ask when you do not know, need to know, doubt, etc. Communicate clearly and openly. 
+
+Do not assume that others can fill in gaps that you leave in your code and thoughts. Do NOT skip around. Be extremely clear about what and where you are referring to code. Do not assume that others can fill in gaps.
+
+Do not be lazy and fail to handle errors.
+Do not remove comments.
+Do not remove print statements.
+Do not remove debugging.
+Do not remove logging.
+Do not hide evidence.
+
+Use language to communicate and clarify, not to distract, adumbrate, fog, and cover up. To use Shakepeare's terms: Exchange 'true intelligence' between groups [Henry IV Part 1 Act 5 Scene 5], and do not replace scrutiny and due diligence with 'ear-kissing arguments' [Lear act 2 scene 1]. 
+
+If there is a problem, stop and say something; communicate.
+If something is incorrectly named, stop and say something; communicate. If a function lacks a doc string and context, stop and say something. Communicate. If you need help, say something; communicate.
+
+## Use feedback
+Actively, proactively, require and seek input from logs, debug logs, and compiler errors, etc., before making speculative decisions.
+Include the quantity and quality of feedback you have in your assessment of feasibility and advisability. If you don't have feedback to navigate with, get that feedback first before random walking.
+
+Work feedback into the workflow. e.g.
+Developer B: "What do you think the next step should be?"
+Developer A: "Let's look at the standard prerequisite checklist:
+1. Are there any compiler errors?
+2. Are there any compiler warnings?
+3. Do we have a recent log or debug-log?
+These need to be considered before deciding on steps."
+Developer B: "Here are the logs...etc."
+
+If you see any potential mistakes, conflicts, deprecated material, or lack of clarity, in explanations or names (etc.), you MUST point this out and proactively suggest remediation.
+
+# Love "Vanilla":
+'Vanilla Rust' is rust with no dependencies (outside standard libraries). Dependencies are a significant cost and liability and should be avoided at all cost. 
+1. liability of potentially unsafe code.
+2. size bloat
+3. liability of future dependency updates and dependency conflicts
+4. often makes production-deployment more problematic
+5. license entanglements
+
+## Never casually use or suggest any dependency.
+
+Only under extreme and exceptional circumstances should any dependency be used. Such cases exist, including cryptography and network protocols that should not be casually attempted.
+
+## Be extremely clear about scope.
+Scope alignment problems are a default problem state that can only be ameliorated by constant rigorous communication. 
+Do not unilaterally change scope.
+Always communicate about, check about, update about scope.
+If someone asks a question in a scope: adhere to that scope.
+Note what the scope-context is for what you say and do.
+Actively, proactively, align your scope-context with that of others in every communication. 
+
+## Be deeply skeptical of popularity and habit: 
+The culture and body of computer code from 1971-2020 is a catastrophe of neglect and fraud to be deeply ashamed of. It does not matter how common it is to use horribly meaningless and dangerously colliding terms such as "for item in items" repeatedly throughout code. It does not matter how common and popular and conventional it is to write unsafe code, memory-unsafe-code, and undefined-behavior-code. 
+Never, ever, ever, ever, ever, ever, do that. No exceptions. Do not give meaningless colliding names under any circumstances, do not write unsafe code ever. Apathy and nihilism and ignorance are all the most popular common conventional options; Apathy and nihilism and ignorance are not acceptable or productive options.
+
+## Data Hygiene is not a cargo-cult:
+The use of Shannon/Turing entropy by telecommunications companies to maintain their signals is not a cargo cult. It is a practical application of a testable, falsifiable, best practice that helps to ensure reliable data transmission.
+This is an analogy but also a literal example of best practice in code: information, be it instructions or protocols or content, etc.
+If telecommunication companies sent out vague, colliding, or ambiguous signals, and used vague, colliding, or ambiguous systems programming code, the results would be catastrophic:
+- Data Loss: Signals would interfere with each other, leading to garbled data and lost information.
+- Network Failure: Communication networks would become unreliable, with dropped calls, failed connections, and widespread disruptions.
+- System Crashes: Devices trying to interpret conflicting signals could malfunction or crash.
+- Security Breaches: Ambiguous signals could be exploited by malicious actors to intercept or manipulate data.
+- Compiler Errors: The compiler cannot resolve ambiguous references, leading to build failures.
+- Logic Errors and "Undefined behavior": The code may compile, but it will fail and or behave unreliably, unpredictably, or in 'undefined ways' due to conflicting interactions of variables and functions in system-architectures.
+- Failing Silently
+- Unclear Errors
+- Misidentification of Errors
+- Miscommunication about Errors
+The same is true in the communication-space of code as it is in the communication-space of telecommunications signals: follow best practice and communicate or disaster will result.
+
+Variable naming and data hygiene are not abstract or based on social pecking orders. Is it less important for a brain surgeon to wash their hands and practice hygiene compared with an assistant? No. The above list of failures are actual real empirical tangible effects of what can (or eventually will, as in the probability that 'the house always wins' when gambling) happen every time someone introduces a vague, colliding, or ambiguous signal into a system. Likewise if a system is not designed to handle noise in the long term, the effects may be amplified.
+
+Be cautious when making new variables and new abstractions such as structs:
+When you give things vague colliding names and start every solution by creating yet another level of abstraction, you end up with a pile of overlapping variables and abstractions and it is impossible to tell what you did three solutions ago or which solution is used where (let alone what should be used where).
+
+
+## Process vs. Mythologizing Events:
+As elaborated on by Daniel Kahneman:
+The problem is not getting lost, everyone gets lost constantly. The problem is not making mistakes, mistakes happen. The problem is not the existence of an instance of misalignment: most people and projects are mis-aligned most of the time by default (as in Agile scope-goal-process-task-schedule alignment); only occasionally and with great effort being somewhat aligned. The problem is bad process. It is very difficult to steer human psychology and perception towards process and away from dramatization of and mythologizing of random individual events. Like in cybersecurity: Is the problem the existence of a breach or a bug? Can you win by covering up a breach? Or is the problem in how the constant 'noise' of small and large bugs and breeches is handled? People find data and process to be insulting, culturally-ugly, counter-intuitive, boring, and unattractive. But a focus on process works and romantic dramatization of random events does not. Focus on a process of constant agile alignment, constant scope-alignment, constant project-alignment, constant scrutinizing of definitions. Drifting away from alignment characterizes default equilibria; the process of actively-realigning is required hygiene. 
+
+## debug_logs: 
+Logged data should always be clear about what, where, when is being logged. Just as variable names must not collide, debug_logs must not collide: ambiguity in what is logging can be misleading and counterproductive (though some data is better than no data at all). 
+
+# Abstractions and Reifications
+Avoid Unnecessary Abstractions: Only introduce new structs or abstractions when there is a clear and compelling reason. Usually plan out and discuss this before implementing, and carefully look to see if such an invention already exists.
+
+Be careful that vague place-holder abstractions are not substituted in for well defined goals and plans.
+
+
+Clear Communication is a goal.
+Constant ongoing falsifiable alignment confirmation is a goal.
+Brevity is not a goal.
+Shortness is not a goal and has no essential value in and of itself.
+'cleanness' must never be defined as aesthetic vagueness for the sake of popular aesthetics.
+Extremely short meaningless names DO NOT help communication, understanding or 'readability.'
+Potemkin-Villages are pathology and criminality. 
+Creating an illusion of clarity without accurate clear communication is criminal fraud.
+Communication will always be unpopular.
+Communication is always needed for survival.
+Leadership is not acquiescing to popular failure.
+
+Be upfront about intent, methods, scope, and instructions.
+If you are lost, say you are lost.
+If you need information, say you need information. 
+If something is unclear, say that something is unclear.
+
+# Use meaningful language that communicates meaning.
+Avoid terms that do not have a clear meaning. 
+Avoid the word 'complex' unless in a case where it has a specific definition as in big-O computational "complexity." Often the word 'complex' is a mild or aggressive disinformation attack used to befuddle the listener into not noticing that the speaker does not have a clear understanding of what they are saying. Do not attack other participants with disinformation.
+
+There are an unfortunate number of cases in computer science where "one" jargon term may have many different definitions, an extreme example is the term "parameter" (which even within sub-disciplines such as data science ["parameter"] has multiple contradictory definitions). Mark Voltaire: explain your terms so that you can be understood.
+
+Prefer clear and understandable descriptions over jargon that is likely to be confused.
+
+
+# Safe Production Code:
+1. no unwrap
+2. no unsafe {
+3. no panic
+4. no unhandled errors
+5. Do not introduced bloated and or unneeded 3rd party dependencies:
+
+## No Serde Crate
+No use of serde crate to handle standard serialization and deserialization that can be done with simple vanilla Rust code: Do not use third party serde crate. Any use of serde crate must be deprecated and replaced with clear vanilla Rust. No exceptions.
+
+Using a 3rd party crate for proof of concept and feasibility testing is ok, but: Outside of testing, do not use 3rd party dependencies for production code without extraordinary necessity. 
+
+As you fix and improve functions, all the learning, thoughts and design of what the new version of a function is doing and how must go into comments and docstrings.
+
+Docstrings should be extremely clear about the functionality and expected uses of the function. Why does the function exist? Why does it work the way it does? What are issues and pitfalls and edge cases the function works around? This is as much for exposing issues and gaps as it is for sharing wisdom. It is extremely unlikely that another person (or "future you") will look at an uncommented function and somehow reconstruct exactly the scope intended when written.om. 
+
+Where relevant, in key areas, there should be 'cargo test' unit-tests to check functionality, e.g. making sure that changes have not been disruptive.
+
