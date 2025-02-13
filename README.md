@@ -3,12 +3,13 @@
 
 # Overall
 1. 'install' for cli use
+- pick a quick name you can remember (I use 'roto' because it is quick to type)
 2. 'setup' with your models, prompts, in modes of combination
 3.  call quickly for a quick query: bash: query
-
-
-Todo:
-optional logging not implimented.
+- 'make' a mode
+- select past modes
+- hit enter again to use default mode
+- use 'dir' mode to add a directory-tree to your prompt
 
 # Launch with default mode
 query_gguf
