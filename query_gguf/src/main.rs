@@ -2,9 +2,6 @@
 // cargo build --profile release-small 
 /*
 
-Todo:
-
-
 
 # Overall steps for use:
 1. 'install' for cli use (see readme: install llama.cpp and a model, use or build query_gguf, set bash path, put in dir)(pick whatever call names you want)
@@ -28,15 +25,12 @@ query_gguf manual
 - Allow the user to as quickly as possible with as few steps as possible,
 ideally within the first step after lauch, start a query
 
-- read config data from a toml file
-(no third party crates!)
+- read config data from a toml file (using no third party crates)
 
 - use get cpu-count from os (or that -1) for threads
 
 - use command to start llama.cpp
 (see more about values for parameters below)
-
-- possibly launches a new terminal running the following command
 
 - use gpu layers only if the user says they have a gpu setup (likely in config, stetup in wizard
 
@@ -353,16 +347,16 @@ fn run_query_gguf_setup_wizard() -> Result<SetupWizardResult, String> {
             }
         }
     }
-    // Configure logging
-    match prompt_yes_no("Enable logging?") {
-        Ok(enable_logging) => {
-            wizard_result.logging_enabled = enable_logging;
-            if enable_logging {
-                wizard_result.log_directory_path = setup_log_directory()?;
-            }
-        }
-        Err(e) => return Err(format!("Failed to configure logging: {}", e)),
-    }
+    // // Configure logging
+    // match prompt_yes_no("Enable Save and Print history.") {
+    //     Ok(enable_logging) => {
+    //         wizard_result.logging_enabled = enable_logging;
+    //         if enable_logging {
+    //             wizard_result.log_directory_path = setup_log_directory()?;
+    //         }
+    //     }
+    //     Err(e) => return Err(format!("Failed to configure logging: {}", e)),
+    // }
 
     // Add default mode setting during initial setup
     let mut config_content = String::new();
@@ -1156,87 +1150,209 @@ fn setup_log_directory() -> Result<String, String> {
     }
 }
 
+/// Launches and manages a LLaMA.cpp process in the current terminal
+/// 
+/// This function:
+/// 1. Validates the llama-cli path from configuration
+/// 2. Constructs the command with all parameters and arguments
+/// 3. Launches llama-cli process in current terminal
+/// 4. Monitors process execution and handles termination
+/// 
+/// # Arguments
+/// * `mode` - ChatModeConfig containing model, prompt, and parameter settings
+/// 
+/// # Returns
+/// - Ok(()): Process completed successfully
+/// - Err(String): Detailed error message if any step fails
+/// 
+/// # Process Handling
+/// - Runs in current terminal (no new window)
+/// - Waits for process completion
+/// - Handles SIGINT (Ctrl+C) gracefully
+/// 
+/// # Error Cases
+/// - LLaMA CLI path not found in config
+/// - Invalid paths or parameters
+/// - Process spawn failure
+/// - Runtime errors from llama-cli
+/// 
+/// # Example Command Format
+/// ```bash
+/// /path/to/llama-cli -m "/path/to/model.gguf" --file "/path/to/prompt.txt" \
+///     --temp 0.8 --top-k 40 --top-p 0.9 --ctx-size 2000 --threads 4
+/// ```
 fn launch_llama(mode: &ChatModeConfig) -> Result<(), String> {
+    // Validate llama-cli path
     let llama_cli_path = read_field_from_toml("llama_cli_path");
     if llama_cli_path.is_empty() {
         return Err("LLaMA CLI path not found in configuration".to_string());
     }
 
-    // Construct the llama-cli command string
-    let mut llama_command = format!("\"{}\" -m \"{}\"", llama_cli_path, mode.model_path);
-    
-    // Add prompt file (now always present)
-    llama_command.push_str(&format!(" --file \"{}\"", mode.prompt_path));
-
-    // Add all parameters
-    llama_command.push_str(&format!(" --temp {}", mode.parameters.temperature_value));
-    llama_command.push_str(&format!(" --top-k {}", mode.parameters.top_k_sampling));
-    llama_command.push_str(&format!(" --top-p {}", mode.parameters.top_p_sampling));
-    llama_command.push_str(&format!(" --ctx-size {}", mode.parameters.context_size));
-    llama_command.push_str(&format!(" --threads {}", mode.parameters.thread_count));
-
-    if mode.parameters.gpu_layers > 0 {
-        llama_command.push_str(&format!(" --n-gpu-layers {}", mode.parameters.gpu_layers));
-    }
-
-    if mode.parameters.interactive_first {
-        llama_command.push_str(" --interactive-first");
-    }
-
-    llama_command.push_str(" --no-display-prompt");
-
-    println!("\nPreparing to launch LLaMA.cpp gguf llama-cli in a new terminal...");
-    println!("Command: {}", llama_command);
-
-    // Launch in new terminal based on OS
-    let launch_result = if cfg!(target_os = "windows") {
-        Command::new("cmd")
-            .args(&["/C", "start", "cmd", "/K", &llama_command])
-            .status()
-            .map_err(|e| format!("Failed to launch Windows terminal: {}", e))
-    } else if cfg!(target_os = "linux") {
-        // Try different terminal emulators
-        let terminals = ["xterm", "gnome-terminal", "konsole", "xfce4-terminal"];
-        let mut last_error = String::from("No terminal emulator found");
-
-        for terminal in terminals.iter() {
-            let result = if *terminal == "gnome-terminal" {
-                Command::new(terminal)
-                    .args(&["--", "bash", "-c", &format!("{};read -p 'Press Enter to close...'", llama_command)])
-                    .status()
-            } else {
-                Command::new(terminal)
-                    .args(&["-e", &format!("bash -c '{};read -p \"Press Enter to close...\"'", llama_command)])
-                    .status()
-            };
-
-            match result {
-                Ok(_) => return Ok(()),
-                Err(e) => last_error = format!("Failed to launch {}: {}", terminal, e),
-            }
+    // Validate that paths exist
+    for path in [&llama_cli_path, &mode.model_path, &mode.prompt_path] {
+        if !std::path::Path::new(path).exists() {
+            return Err(format!("Path does not exist: {}", path));
         }
-        
-        Err(last_error)
-    } else if cfg!(target_os = "macos") {
-        Command::new("osascript")
-            .args(&["-e", &format!(
-                "tell application \"Terminal\" to do script \"{}\"",
-                llama_command
-            )])
-            .status()
-            .map_err(|e| format!("Failed to launch macOS terminal: {}", e))
-    } else {
-        Err(String::from("Unsupported operating system"))
+    }
+
+    // Build command arguments as a Vec for cleaner handling
+    let mut command_args: Vec<String> = Vec::new();
+    
+    // Add model path
+    command_args.push("-m".to_string());
+    command_args.push(mode.model_path.clone());
+
+    // Add clean terminal print (no load-data)    
+    // command_args.push("2>/dev/null".to_string());
+    
+    // Add prompt file
+    command_args.push("--file".to_string());
+    command_args.push(mode.prompt_path.clone());
+    
+    // Add all parameters
+    command_args.extend(vec![
+        "--temp".to_string(), mode.parameters.temperature_value.to_string(),
+        "--top-k".to_string(), mode.parameters.top_k_sampling.to_string(),
+        "--top-p".to_string(), mode.parameters.top_p_sampling.to_string(),
+        "--ctx-size".to_string(), mode.parameters.context_size.to_string(),
+        "--threads".to_string(), mode.parameters.thread_count.to_string(),
+    ]);
+
+    // Add GPU layers if specified
+    if mode.parameters.gpu_layers > 0 {
+        command_args.extend(vec![
+            "--n-gpu-layers".to_string(),
+            mode.parameters.gpu_layers.to_string(),
+        ]);
+    }
+
+    // Add interactive-first if enabled
+    if mode.parameters.interactive_first {
+        command_args.push("--interactive-first".to_string());
+    }
+
+    // Add no-display-prompt flag
+    command_args.push("--no-display-prompt".to_string());
+
+    // Log the complete command for debugging
+    println!("\nLaunching LLaMA.cpp with command:");
+    println!("{} {}", llama_cli_path, command_args.join(" "));
+
+    // Create and configure command
+    let process_result = Command::new(&llama_cli_path)
+        .args(&command_args)
+        .stdin(std::process::Stdio::inherit())
+        .stdout(std::process::Stdio::inherit())
+        .stderr(std::process::Stdio::inherit())
+        .spawn();
+
+    // Handle process creation result
+    let mut process = match process_result {
+        Ok(process) => process,
+        Err(e) => return Err(format!(
+            "Failed to launch LLaMA process: {}. Check if llama-cli path is correct: {}", 
+            e, llama_cli_path
+        )),
     };
 
-    match launch_result {
-        Ok(_) => {
-            println!("LLaMA launched in new terminal window");
-            Ok(())
+    // Wait for process completion
+    match process.wait() {
+        Ok(status) => {
+            if status.success() {
+                Ok(())
+            } else {
+                Err(format!(
+                    "LLaMA process exited with status: {}",
+                    status.code().unwrap_or(-1)
+                ))
+            }
         },
-        Err(e) => Err(format!("Failed to launch LLaMA: {}", e))
+        Err(e) => Err(format!("Error waiting for LLaMA process: {}", e)),
     }
 }
+
+// old version with new terminal
+// fn launch_llama(mode: &ChatModeConfig) -> Result<(), String> {
+//     let llama_cli_path = read_field_from_toml("llama_cli_path");
+//     if llama_cli_path.is_empty() {
+//         return Err("LLaMA CLI path not found in configuration".to_string());
+//     }
+
+//     // Construct the llama-cli command string
+//     let mut llama_command = format!("\"{}\" -m \"{}\"", llama_cli_path, mode.model_path);
+    
+//     // Add prompt file (now always present)
+//     llama_command.push_str(&format!(" --file \"{}\"", mode.prompt_path));
+
+//     // Add all parameters
+//     llama_command.push_str(&format!(" --temp {}", mode.parameters.temperature_value));
+//     llama_command.push_str(&format!(" --top-k {}", mode.parameters.top_k_sampling));
+//     llama_command.push_str(&format!(" --top-p {}", mode.parameters.top_p_sampling));
+//     llama_command.push_str(&format!(" --ctx-size {}", mode.parameters.context_size));
+//     llama_command.push_str(&format!(" --threads {}", mode.parameters.thread_count));
+
+//     if mode.parameters.gpu_layers > 0 {
+//         llama_command.push_str(&format!(" --n-gpu-layers {}", mode.parameters.gpu_layers));
+//     }
+
+//     if mode.parameters.interactive_first {
+//         llama_command.push_str(" --interactive-first");
+//     }
+
+//     llama_command.push_str(" --no-display-prompt");
+
+//     println!("\nPreparing to launch LLaMA.cpp gguf llama-cli in a new terminal...");
+//     println!("Command: {}", llama_command);
+
+//     // Launch in new terminal based on OS
+//     let launch_result = if cfg!(target_os = "windows") {
+//         Command::new("cmd")
+//             .args(&["/C", "start", "cmd", "/K", &llama_command])
+//             .status()
+//             .map_err(|e| format!("Failed to launch Windows terminal: {}", e))
+//     } else if cfg!(target_os = "linux") {
+//         // Try different terminal emulators
+//         let terminals = ["xterm", "gnome-terminal", "konsole", "xfce4-terminal"];
+//         let mut last_error = String::from("No terminal emulator found");
+
+//         for terminal in terminals.iter() {
+//             let result = if *terminal == "gnome-terminal" {
+//                 Command::new(terminal)
+//                     .args(&["--", "bash", "-c", &format!("{};read -p 'Press Enter to close...'", llama_command)])
+//                     .status()
+//             } else {
+//                 Command::new(terminal)
+//                     .args(&["-e", &format!("bash -c '{};read -p \"Press Enter to close...\"'", llama_command)])
+//                     .status()
+//             };
+
+//             match result {
+//                 Ok(_) => return Ok(()),
+//                 Err(e) => last_error = format!("Failed to launch {}: {}", terminal, e),
+//             }
+//         }
+        
+//         Err(last_error)
+//     } else if cfg!(target_os = "macos") {
+//         Command::new("osascript")
+//             .args(&["-e", &format!(
+//                 "tell application \"Terminal\" to do script \"{}\"",
+//                 llama_command
+//             )])
+//             .status()
+//             .map_err(|e| format!("Failed to launch macOS terminal: {}", e))
+//     } else {
+//         Err(String::from("Unsupported operating system"))
+//     };
+
+//     match launch_result {
+//         Ok(_) => {
+//             println!("LLaMA launched in new terminal window");
+//             Ok(())
+//         },
+//         Err(e) => Err(format!("Failed to launch LLaMA: {}", e))
+//     }
+// }
 
 fn handle_mode_selection(choice: &str) -> Result<String, String> {
     match choice.trim() {
