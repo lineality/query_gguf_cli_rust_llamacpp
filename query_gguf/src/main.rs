@@ -3,7 +3,8 @@
 /*
 
 Todo:
-optional todo: logging not implimented. maybe not possible
+1. dir mode
+
 
 # Overall steps for use:
 1. 'install' for cli use (see readme: install llama.cpp and a model, use or build query_gguf, set bash path, put in dir)(pick whatever call names you want)
@@ -1238,6 +1239,44 @@ fn launch_llama(mode: &ChatModeConfig) -> Result<(), String> {
 
 fn handle_mode_selection(choice: &str) -> Result<String, String> {
     match choice.trim() {
+        "dir" | "directory" => {
+            println!("\nDirectory Mode Setup:");
+            
+            // Get directory to scan
+            print!("Enter directory path to scan: ");
+            io::stdout().flush().map_err(|e| e.to_string())?;
+            let dir_path = read_user_input()?.trim().to_string();
+            
+            // Get mode number to use
+            print!("Enter mode number to use: ");
+            io::stdout().flush().map_err(|e| e.to_string())?;
+            let mode_num = read_user_input()?.trim().to_string();
+            
+            // Get the selected mode
+            let saved_modes = read_saved_modes()?;
+            let mode_index = mode_num.parse::<usize>()
+                .map_err(|_| "Invalid mode number".to_string())?
+                .checked_sub(1)
+                .ok_or("Invalid mode number".to_string())?;
+            
+            let mut selected_mode = saved_modes.get(mode_index)
+                .ok_or("Invalid mode selection")?
+                .clone();  // Now clones the entire ChatModeConfig
+
+            // Create combined prompt
+            let combined_prompt_path = create_combined_prompt(
+                &selected_mode.prompt_path,
+                &dir_path
+            )?;
+
+            // Update mode to use combined prompt
+            selected_mode.prompt_path = combined_prompt_path;
+
+            // Launch with combined prompt
+            launch_llama(&selected_mode)?;
+
+            Ok(format!("directory_mode::{}", selected_mode.name))
+        },
         "make" | "manual" => handle_manual_mode_selection(),
         number => {
             let mode_num = number.parse::<usize>()
@@ -1947,7 +1986,7 @@ fn configure_parameters_interactive(params: &mut LlamaCppParameters) -> Result<(
     Ok(())
 }
 
-/// Represents a complete mode configuration that can be saved
+#[derive(Debug, Clone)]
 struct ChatModeConfig {
     name: String,
     description: String,
@@ -2091,6 +2130,7 @@ fn display_available_modes() {
     println!("\nQuery-GGUF - Select a mode number or type a command:");
     println!("Commands:");
     println!("  'make' or 'manual' -> Create new mode");
+    println!("  'dir' or 'directory' -> Run with directory contents");
     println!("  'config' -> Open config file in editor");
 
     println!("\nAvailable Modes:");
@@ -2178,6 +2218,180 @@ fn open_config_in_editor() -> Result<(), String> {
     Ok(())
 }
 
+/// Represents a directory scan result
+struct DirectoryScan {
+    tree_structure: String,
+    file_contents: String,
+}
+
+// /// Recursively scans a directory and builds a tree-like structure with file contents
+// fn scan_directory(path: &Path, prefix: &str) -> Result<DirectoryScan, String> {
+//     let mut tree = String::new();
+//     let mut contents = String::new();
+
+//     if !path.exists() {
+//         return Err(format!("Directory not found: {}", path.display()));
+//     }
+
+//     let entries = fs::read_dir(path)
+//         .map_err(|e| format!("Failed to read directory {}: {}", path.display(), e))?;
+
+//     // Sort entries for consistent output
+//     let mut entries: Vec<_> = entries.collect::<Result<Vec<_>, _>>()
+//         .map_err(|e| format!("Failed to collect directory entries: {}", e))?;
+//     entries.sort_by_key(|entry| entry.path());
+
+//     for (i, entry) in entries.iter().enumerate() {
+//         let is_last = i == entries.len() - 1;
+//         let path = entry.path();
+//         let name = path.file_name()
+//             .and_then(|n| n.to_str())
+//             .unwrap_or("invalid_filename");
+
+//         // Add to tree structure
+//         tree.push_str(&format!("{}{} {}\n", 
+//             prefix,
+//             if is_last { "└──" } else { "├──" },
+//             name));
+
+//         if path.is_dir() {
+//             // Recursively scan subdirectory
+//             let next_prefix = format!("{}{}",
+//                 prefix,
+//                 if is_last { "    " } else { "│   " });
+            
+//             let scan_result = scan_directory(&path, &next_prefix)?;
+//             tree.push_str(&scan_result.tree_structure);
+//             contents.push_str(&scan_result.file_contents);
+//         } else {
+//             // Read file contents if it's a text file
+//             if let Ok(file_type) = infer::get_from_path(&path) {
+//                 if let Some(mime) = file_type {
+//                     if mime.mime_type().starts_with("text/") {
+//                         if let Ok(content) = fs::read_to_string(&path) {
+//                             contents.push_str(&format!("\n=== {} ===\n{}\n", name, content));
+//                         }
+//                     }
+//                 }
+//             }
+//         }
+//     }
+
+//     Ok(DirectoryScan {
+//         tree_structure: tree,
+//         file_contents: contents,
+//     })
+// }
+
+/// Checks if a file might be a text file based on extension
+fn is_likely_text_file(path: &Path) -> bool {
+    let text_extensions = [
+        "txt", "md", "rs", "py", "js", "json", "toml", "yaml", "yml",
+        "css", "html", "htm", "xml", "csv", "log", "sh", "bash",
+        "c", "cpp", "h", "hpp", "java", "go", "rb", "pl", "php"
+    ];
+    
+    path.extension()
+        .and_then(|ext| ext.to_str())
+        .map(|ext| text_extensions.contains(&ext.to_lowercase().as_str()))
+        .unwrap_or(false)
+}
+
+/// Recursively scans a directory and builds a tree-like structure with file contents
+fn scan_directory(path: &Path, prefix: &str) -> Result<DirectoryScan, String> {
+    let mut tree = String::new();
+    let mut contents = String::new();
+
+    if !path.exists() {
+        return Err(format!("Directory not found: {}", path.display()));
+    }
+
+    let entries = fs::read_dir(path)
+        .map_err(|e| format!("Failed to read directory {}: {}", path.display(), e))?;
+
+    // Sort entries for consistent output
+    let mut entries: Vec<_> = entries.collect::<Result<Vec<_>, _>>()
+        .map_err(|e| format!("Failed to collect directory entries: {}", e))?;
+    entries.sort_by_key(|entry| entry.path());
+
+    for (i, entry) in entries.iter().enumerate() {
+        let is_last = i == entries.len() - 1;
+        let path = entry.path();
+        let name = path.file_name()
+            .and_then(|n| n.to_str())
+            .unwrap_or("invalid_filename");
+
+        // Add to tree structure
+        tree.push_str(&format!("{}{} {}\n", 
+            prefix,
+            if is_last { "└──" } else { "├──" },
+            name));
+
+        if path.is_dir() {
+            // Recursively scan subdirectory
+            let next_prefix = format!("{}{}",
+                prefix,
+                if is_last { "    " } else { "│   " });
+            
+            let scan_result = scan_directory(&path, &next_prefix)?;
+            tree.push_str(&scan_result.tree_structure);
+            contents.push_str(&scan_result.file_contents);
+        } else {
+            // Read file contents if it's a text file
+            if is_likely_text_file(&path) {
+                if let Ok(content) = fs::read_to_string(&path) {
+                    contents.push_str(&format!("\n=== {} ===\n{}\n", name, content));
+                }
+            }
+        }
+    }
+
+    Ok(DirectoryScan {
+        tree_structure: tree,
+        file_contents: contents,
+    })
+}
+
+/// Creates a combined prompt file with directory contents
+fn create_combined_prompt(
+    original_prompt_path: &str,
+    directory_path: &str
+) -> Result<String, String> {
+    // Get the prompts directory
+    let prompts_dir = get_prompts_dir()?;
+    
+    // Generate timestamp for unique filename
+    let timestamp = generate_timestamp_string();
+    let combined_prompt_path = prompts_dir
+        .join(format!("combined_prompt_{}.txt", timestamp));
+
+    // Read original prompt
+    let original_prompt = fs::read_to_string(original_prompt_path)
+        .map_err(|e| format!("Failed to read original prompt: {}", e))?;
+
+    // Scan directory
+    let scan_result = scan_directory(
+        Path::new(directory_path), 
+        ""
+    )?;
+
+    // Combine prompts
+    let combined_content = format!(
+        "{}\n\nDirectory Structure:\n{}\n\nFile Contents:{}\n",
+        original_prompt,
+        scan_result.tree_structure,
+        scan_result.file_contents
+    );
+
+    // Write combined prompt
+    fs::write(&combined_prompt_path, combined_content)
+        .map_err(|e| format!("Failed to write combined prompt: {}", e))?;
+
+    Ok(combined_prompt_path.to_string_lossy().to_string())
+}
+
+
+
 /// Modified mode selection screen for simpler interaction
 fn display_mode_selection_screen() -> Result<String, String> {
     loop {
@@ -2209,6 +2423,9 @@ fn display_mode_selection_screen() -> Result<String, String> {
             },
             "make" | "manual" => {
                 return handle_manual_mode_selection();
+            },
+            "dir" | "directory" => {
+                return handle_mode_selection("dir");
             },
             number => {
                 // Try to parse as a mode number
