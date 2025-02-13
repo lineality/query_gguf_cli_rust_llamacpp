@@ -3,7 +3,7 @@
 /*
 
 Todo:
-1. dir mode
+
 
 
 # Overall steps for use:
@@ -42,6 +42,7 @@ ideally within the first step after lauch, start a query
 
 - open config file in editor to modify it by command, maybe: type config
 
+- use dir/directory mode to give a path to a project of files, these become part of the prompt. 
 
 
 Sample toml
@@ -2218,77 +2219,38 @@ fn open_config_in_editor() -> Result<(), String> {
     Ok(())
 }
 
-/// Represents a directory scan result
+
+/// Represents a directory scan result containing both tree structure and file contents
+/// 
+/// This struct holds the results of scanning a directory:
+/// - tree_structure: A formatted string showing directory hierarchy (like `tree` command)
+/// - file_contents: Concatenated contents of text files found in the directory
+/// 
+/// Used to generate combined prompts that include both structure and content.
 struct DirectoryScan {
     tree_structure: String,
     file_contents: String,
 }
 
-// /// Recursively scans a directory and builds a tree-like structure with file contents
-// fn scan_directory(path: &Path, prefix: &str) -> Result<DirectoryScan, String> {
-//     let mut tree = String::new();
-//     let mut contents = String::new();
-
-//     if !path.exists() {
-//         return Err(format!("Directory not found: {}", path.display()));
-//     }
-
-//     let entries = fs::read_dir(path)
-//         .map_err(|e| format!("Failed to read directory {}: {}", path.display(), e))?;
-
-//     // Sort entries for consistent output
-//     let mut entries: Vec<_> = entries.collect::<Result<Vec<_>, _>>()
-//         .map_err(|e| format!("Failed to collect directory entries: {}", e))?;
-//     entries.sort_by_key(|entry| entry.path());
-
-//     for (i, entry) in entries.iter().enumerate() {
-//         let is_last = i == entries.len() - 1;
-//         let path = entry.path();
-//         let name = path.file_name()
-//             .and_then(|n| n.to_str())
-//             .unwrap_or("invalid_filename");
-
-//         // Add to tree structure
-//         tree.push_str(&format!("{}{} {}\n", 
-//             prefix,
-//             if is_last { "└──" } else { "├──" },
-//             name));
-
-//         if path.is_dir() {
-//             // Recursively scan subdirectory
-//             let next_prefix = format!("{}{}",
-//                 prefix,
-//                 if is_last { "    " } else { "│   " });
-            
-//             let scan_result = scan_directory(&path, &next_prefix)?;
-//             tree.push_str(&scan_result.tree_structure);
-//             contents.push_str(&scan_result.file_contents);
-//         } else {
-//             // Read file contents if it's a text file
-//             if let Ok(file_type) = infer::get_from_path(&path) {
-//                 if let Some(mime) = file_type {
-//                     if mime.mime_type().starts_with("text/") {
-//                         if let Ok(content) = fs::read_to_string(&path) {
-//                             contents.push_str(&format!("\n=== {} ===\n{}\n", name, content));
-//                         }
-//                     }
-//                 }
-//             }
-//         }
-//     }
-
-//     Ok(DirectoryScan {
-//         tree_structure: tree,
-//         file_contents: contents,
-//     })
-// }
-
-/// Checks if a file might be a text file based on extension
+/// Determines if a file is likely to be a text file based on its extension
+/// 
+/// Checks against a predefined list of common text file extensions including:
+/// - Source code (.rs, .py, .js, etc.)
+/// - Documentation (.md, .txt)
+/// - Configuration (.toml, .yaml, etc.)
+/// - Web files (.html, .css)
+/// 
+/// # Arguments
+/// * `path` - Path to the file to check
+/// 
+/// # Returns
+/// * `bool` - true if the file extension suggests text content
 fn is_likely_text_file(path: &Path) -> bool {
     let text_extensions = [
         "txt", "md", "rs", "py", "js", "json", "toml", "yaml", "yml",
         "css", "html", "htm", "xml", "csv", "log", "sh", "bash",
-        "c", "cpp", "h", "hpp", "java", "go", "rb", "pl", "php"
+        "c", "cpp", "h", "hpp", "java", "go", "rb", "pl", "php",
+        "csv", "json", "jsonl", 
     ];
     
     path.extension()
@@ -2297,7 +2259,32 @@ fn is_likely_text_file(path: &Path) -> bool {
         .unwrap_or(false)
 }
 
-/// Recursively scans a directory and builds a tree-like structure with file contents
+/// Recursively scans a directory creating a tree structure and collecting file contents
+/// 
+/// Creates a hierarchical view of the directory structure and collects contents
+/// of text files, similar to combining `tree` and `cat` commands.
+/// 
+/// # Arguments
+/// * `path` - Directory path to scan
+/// * `prefix` - String prefix for tree formatting (used in recursion)
+/// 
+/// # Returns
+/// - Ok(DirectoryScan): Successful scan results
+/// - Err(String): Error message if scan fails
+/// 
+/// # Example Tree Structure
+/// ```text
+/// ├── src/
+/// │   ├── main.rs
+/// │   └── lib.rs
+/// └── docs/
+///     └── README.md
+/// ```
+/// 
+/// # Error Cases
+/// - Directory does not exist
+/// - Permission denied
+/// - File read errors
 fn scan_directory(path: &Path, prefix: &str) -> Result<DirectoryScan, String> {
     let mut tree = String::new();
     let mut contents = String::new();
@@ -2352,6 +2339,45 @@ fn scan_directory(path: &Path, prefix: &str) -> Result<DirectoryScan, String> {
     })
 }
 
+/// Creates a temporary combined prompt file from original prompt and directory contents
+/// 
+/// Combines:
+/// 1. Original chat prompt (if provided)
+/// 2. Directory structure
+/// 3. Relevant file contents
+/// 
+/// # Arguments
+/// * `original_prompt_path` - Optional path to original prompt file
+/// * `directory_contents` - String containing scanned directory contents
+/// 
+/// # Returns
+/// - Ok(PathBuf): Path to created temporary combined prompt file
+/// - Err(String): Error message if creation fails
+/// 
+/// # File Location
+/// Creates temporary file in standard location:
+/// - Linux/MacOS: ~/query_gguf/prompts/temp/
+/// - Windows: \Users\username\query_gguf\prompts\temp\
+/// 
+/// # File Format
+/// ```text
+/// [Original Prompt Content (if any)]
+/// 
+/// ### Directory Contents ###
+/// [Directory Structure and Contents]
+/// 
+/// ### Query Context ###
+/// The above represents the contents of directory: [dir_path]
+/// ```
+/// 
+/// # Cleanup
+/// Temporary files are created with timestamp-based names and should be
+/// cleaned up periodically (implementation dependent)
+/// 
+/// # Error Cases
+/// - Cannot create temp directory
+/// - Cannot write temp file
+/// - Original prompt file not readable
 /// Creates a combined prompt file with directory contents
 fn create_combined_prompt(
     original_prompt_path: &str,
