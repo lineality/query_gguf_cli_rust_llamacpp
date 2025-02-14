@@ -1125,30 +1125,31 @@ fn setup_prompt_directory() -> Result<String, String> {
     Ok(prompts_dir)
 }
 
-/// Sets up the logging directory, using default or custom path
-fn setup_log_directory() -> Result<String, String> {
-    let default_log_dir = "query_gguf/chatlogs";
+// /// not used now, maybe in future
+// /// Sets up the logging directory, using default or custom path
+// fn setup_log_directory() -> Result<String, String> {
+//     let default_log_dir = "query_gguf/chatlogs";
     
-    println!("\nLog Directory Setup:");
-    println!("Chat logs will be saved in: {}/", default_log_dir);
+//     println!("\nLog Directory Setup:");
+//     println!("Chat logs will be saved in: {}/", default_log_dir);
     
-    match prompt_yes_no("Would you like to use a different directory for logs?") {
-        Ok(true) => {
-            prompt_for_directory("Enter custom path for log files")
-        },
-        Ok(false) => {
-            // Create default log directory
-            match fs::create_dir_all(default_log_dir) {
-                Ok(()) => {
-                    println!("Using default log directory: {}/", default_log_dir);
-                    Ok(default_log_dir.to_string())
-                },
-                Err(e) => Err(format!("Failed to create log directory: {}", e))
-            }
-        },
-        Err(e) => Err(format!("Error during prompt: {}", e))
-    }
-}
+//     match prompt_yes_no("Would you like to use a different directory for logs?") {
+//         Ok(true) => {
+//             prompt_for_directory("Enter custom path for log files")
+//         },
+//         Ok(false) => {
+//             // Create default log directory
+//             match fs::create_dir_all(default_log_dir) {
+//                 Ok(()) => {
+//                     println!("Using default log directory: {}/", default_log_dir);
+//                     Ok(default_log_dir.to_string())
+//                 },
+//                 Err(e) => Err(format!("Failed to create log directory: {}", e))
+//             }
+//         },
+//         Err(e) => Err(format!("Error during prompt: {}", e))
+//     }
+// }
 
 /// Launches and manages a LLaMA.cpp process in the current terminal
 /// 
@@ -1482,7 +1483,10 @@ struct ModelFile {
 /// - Validates file existence before operations
 /// Handles the manual mode selection process
 fn handle_manual_mode_selection() -> Result<String, String> {
-    // clear_screen();
+    
+    // turn off for debugging
+    clear_screen();
+    
     println!("\n=== Manual Mode Setup ===");
 
     // 1. Find and list available models
@@ -1895,7 +1899,9 @@ fn read_saved_modes() -> Result<Vec<ChatModeConfig>, String> {
         } else {
             format!("{}/{}", home_dir, parts[0].trim_start_matches("/"))
         };
-        println!("Resolved model path: {}", model_path);
+        
+        // // Keep For Inspection
+        // println!("Resolved model path: {}", model_path);
 
         // 2. CHANGE: Resolve prompt path to absolute path
         let prompt_path = if parts.len() > 1 && !parts[1].contains('=') {
@@ -1916,7 +1922,9 @@ fn read_saved_modes() -> Result<Vec<ChatModeConfig>, String> {
                 .to_string_lossy()
                 .to_string()
         };
-        println!("Resolved prompt path: {}", prompt_path);
+        
+        // // Keep For Inspection
+        // println!("Resolved prompt path: {}", prompt_path);
 
         // Get the last two non-parameter parts for name and description
         let mut name = String::new();
@@ -2244,15 +2252,16 @@ fn save_mode_to_config(mode: &ChatModeConfig) -> Result<(), String> {
 
 /// Displays the available modes in a simplified format
 fn display_available_modes() {
-    println!("\nQuery-GGUF - Select a mode number or type a command:");
-    println!("Commands:");
-    println!("  'make' or 'manual' -> Create new mode");
-    println!("  'dir' or 'directory' -> Run with directory contents");
-    println!("  'config' -> Open config file in editor");
+    println!("\nSelect a mode number or type a command:");
+    // println!("Commands:");
+    println!("  'make' or 'manual'   -> Create a new mode.");
+    println!("  'dir' or 'directory' -> Add project directory files to any mode prompt.");
+    println!("  'config'             -> Open the config file in editor.");
 
     println!("\nAvailable Modes:");
     match read_saved_modes() {
         Ok(modes) => {
+            // println!("\n");
             for (index, mode) in modes.iter().enumerate() {
                 println!("{}. {} - {}", 
                     index + 1, 
@@ -2265,6 +2274,7 @@ fn display_available_modes() {
             println!("Warning: Could not read saved modes: {}", e);
         }
     }
+    
 }
 
 /// Opens the configuration file in the system's text editor
@@ -2334,7 +2344,6 @@ fn open_config_in_editor() -> Result<(), String> {
     println!("Configuration file edited successfully");
     Ok(())
 }
-
 
 /// Represents a directory scan result containing both tree structure and file contents
 /// 
