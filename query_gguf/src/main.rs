@@ -2075,7 +2075,7 @@ fn configure_parameters_interactive(params: &mut LlamaCppParameters) -> Result<(
     }
 
     // Context Size
-    print!("Context window size (default {}): ", params.context_size);
+    print!("Input 'context-window' size (default {}): ", params.context_size);
     io::stdout().flush().map_err(|e| e.to_string())?;
     if let Ok(input) = read_user_input() {
         if !input.trim().is_empty() {
@@ -2105,7 +2105,7 @@ fn configure_parameters_interactive(params: &mut LlamaCppParameters) -> Result<(
     }
 
     // Interactive First
-    params.interactive_first = prompt_yes_no("Enable interactive-first mode?")?;
+    params.interactive_first = prompt_yes_no("Enable interactive-first mode (user-first)? (Select No to start with AI reaction to Prompt)")?;
 
     Ok(())
 }
