@@ -1,0 +1,7 @@
+1. Goals & Scope Alignment: definition items (2025.02.08)
+Process: Values, Agenda, Methods, (Data/System)Ecology: Collapse & Productivity
+Schedule: (?; whole; this iteration)
+Users: Stakeholders & Needs & Goals Evaluation (of users)
+Features: User-Features & Subfeatures (or hidden features)
+MVP: 'MVP's (Minimum Viable Products); Tools & 'Tool Stack / Tech Stack'
+Feedback: Tests, Ecological Effects, Communication, Documentation & Iteration (~agile)
